@@ -13,7 +13,6 @@
 		<pathelement path="${dir.working}/lib/ojdbc14.jar" />
 		<pathelement path="${dir.working}/lib/mysql-connector-java-5.1.6-bin.jar" />
 		<pathelement path="${dir.working}/lib/junit-4.8.2.jar" />
-		<pathelement path="${dir.working}/../nbis-platform/WebContent/WEB-INF/lib/gson-2.2.1.jar" />
 	</path>
 	
 	<target name="clean" description="clean the project enviroment">
