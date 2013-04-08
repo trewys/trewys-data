@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>de.trewys</groupId>
+		<artifactId>trewys-oss</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>trewys-data</artifactId>
+	<name>${project.artifactId}</name>
+	<packaging>jar</packaging>
+	
+	<scm>
+		<url>https://github.com/trewys/trewys-data</url>
+		<connection>scm:git:git://github.com/trewys/trewys-data.git</connection>
+		<developerConnection>scm:git:git@github.com:trewys/trewys/trewys-data.git</developerConnection>
+	</scm>
+
+	<mailingLists>
+		<mailingList>
+			<name>trewys-data issues</name>
+			<archive>https://github.com/trewys/trewys-data/issues?state=closed</archive>
+			<subscribe>https://github.com/trewys/trewys-data/toggle_watch</subscribe>
+			<unsubscribe>https://github.com/trewys/trewys-data/toggle_watch</unsubscribe>
+			<post>https://github.com/trewys/trewys-data/issues/new</post>
+		</mailingList>
+	</mailingLists>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/trewys/trewys-data/issues/new</url>
+	</issueManagement>
+
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<properties>
+		<encoding>UTF-8</encoding>
+		<maven.compiler.source>1.6</maven.compiler.source>
+		<maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.0</version>
+				<configuration>
+					<source>${maven.compiler.source}</source>
+					<target>${maven.compiler.target}</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
+	</dependencies>
+</project>
