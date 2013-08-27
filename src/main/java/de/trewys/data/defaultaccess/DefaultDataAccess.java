@@ -1,32 +1,40 @@
-/*
- * Copyright 2013 trewys GmbH 
+ /*
+ * Copyright 2012 trewys GmbH
  * 
- * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
+ * 
  */
+
 package de.trewys.data.defaultaccess;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
 import de.trewys.data.DataObject;
+import de.trewys.data.PF_History;
 import de.trewys.data.access.DBCommand;
 import de.trewys.data.access.DBConnection;
 import de.trewys.data.access.DataReader;
 import de.trewys.data.access.Query;
 import de.trewys.data.access.Update;
+import de.trewys.data.defaultaccess.DataObjectInfo.SourceType;
+import de.trewys.data.historicizer.Historicizer;
 
 public class DefaultDataAccess {
 
@@ -45,6 +53,7 @@ public class DefaultDataAccess {
 			this.dataObjectInfo = info;
 
 		}
+
 
 		@Override
 		public DO read(ResultSet rs) throws Exception {
@@ -85,7 +94,13 @@ public class DefaultDataAccess {
 		StringBuilder sql = new StringBuilder();
 
 		sql.append("SELECT * FROM ");
-		sql.append(dataObjectInfo.getSource());
+		if (dataObjectInfo.getSourceType() == SourceType.Query) {
+			sql.append("(");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(")");
+		} else
+			sql.append(dataObjectInfo.getSource());
+		
 		sql.append(" D WHERE id = ?");
 
 		Query<DO> query = new Query<DO>(connection, sql.toString());
@@ -99,7 +114,7 @@ public class DefaultDataAccess {
 		}
 	}
 
-	public <DO extends DataObject> Collection<DO> getDataObjects(
+	public <DO extends DataObject> List<DO> getDataObjects(
 			DBConnection connection,
 			Class<DO> dataClass,
 			String where,
@@ -108,7 +123,12 @@ public class DefaultDataAccess {
 		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
 		StringBuilder sql = new StringBuilder();
 		sql.append("SELECT * FROM ");
-		sql.append(dataObjectInfo.getSource());
+		if (dataObjectInfo.getSourceType() == SourceType.Query) {
+			sql.append("(");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(")");
+		} else
+			sql.append(dataObjectInfo.getSource());
 		sql.append(" D WHERE ");
 		sql.append(where);
 
@@ -127,7 +147,7 @@ public class DefaultDataAccess {
 		}
 	}
 	
-	public <DO extends DataObject> Collection<DO> getDataObjectsByQuery(
+	public <DO extends DataObject> List<DO> getDataObjectsByQuery(
 			DBConnection connection,
 			Class<DO> dataClass,
 			String sqlQuery,
@@ -160,7 +180,12 @@ public class DefaultDataAccess {
 		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
 		StringBuilder sql = new StringBuilder();
 		sql.append("SELECT * FROM ");
-		sql.append(dataObjectInfo.getSource());
+		if (dataObjectInfo.getSourceType() == SourceType.Query) {
+			sql.append("(");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(")");
+		} else
+			sql.append(dataObjectInfo.getSource());
 		sql.append(" D WHERE ");
 		sql.append(sqlQuery);
 
@@ -204,14 +229,22 @@ public class DefaultDataAccess {
 	}
 	
 	public void insertDataObject(DBConnection connection, DataObject dataObject) {
+		insertDataObject(connection, dataObject, null);
+	}
+	
+	
+	public void insertDataObject(DBConnection connection, DataObject dataObject, Historicizer historicizer) {
 		Class<?> dataClass = dataObject.getClass();
 		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
 
 		StringBuilder sql = new StringBuilder();
 
-		sql.append("INSERT INTO ");
-		sql.append(dataObjectInfo.getSource());
-		sql.append(" (");
+		if (dataObjectInfo.getSourceType() == SourceType.Table) {
+			sql.append("INSERT INTO ");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(" (");
+		} else
+			throw new RuntimeException("Only table data can be deleted");
 
 		Collection<Object> params = new ArrayList<Object>();
 
@@ -257,17 +290,28 @@ public class DefaultDataAccess {
 		} finally {
 			update.close();
 		}	
+		
+		if (historicizer != null) {
+			historicizer.historicize(connection);
+		}
+	}
+	
+	public void updateDataObject(DBConnection connection, DataObject dataObject) {
+		updateDataObject(connection, dataObject, null);
 	}
 
-	public void updateDataObject(DBConnection connection, DataObject dataObject) {
+	public void updateDataObject(DBConnection connection, DataObject dataObject, Historicizer historicizer) {
 		Class<?> dataClass = dataObject.getClass();
 		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
 
 		StringBuilder sql = new StringBuilder();
 
-		sql.append("UPDATE ");
-		sql.append(dataObjectInfo.getSource());
-		sql.append(" SET ");
+		if (dataObjectInfo.getSourceType() == SourceType.Table) {
+			sql.append("UPDATE ");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(" SET ");
+		} else
+			throw new RuntimeException("Only table data can be deleted");
 
 		boolean first = true;
 		List<DataObjectProperty> properties = dataObjectInfo.getProperties();
@@ -309,6 +353,10 @@ public class DefaultDataAccess {
 		} finally {
 			update.close();
 		}		
+		
+		if (historicizer != null) {
+			historicizer.historicize(connection);
+		}
 	}
 	
 	public void deleteDataObject(DBConnection connection, DataObject dataObject) {
@@ -318,9 +366,12 @@ public class DefaultDataAccess {
 		
 		StringBuilder sql = new StringBuilder();
 
-		sql.append("DELETE FROM ");
-		sql.append(dataObjectInfo.getSource());
-		sql.append(" WHERE id = ?");
+		if (dataObjectInfo.getSourceType() == SourceType.Table) {
+			sql.append("DELETE FROM ");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(" WHERE id = ?");
+		} else
+			throw new RuntimeException("Only table data can be deleted");
 
 		Update update = new Update(connection, sql.toString());
 
@@ -332,6 +383,43 @@ public class DefaultDataAccess {
 		} finally {
 			update.close();
 		}
+		
+		// clean up history
+		if (dataObject.getClass().isAnnotationPresent(History.class)) {
+			PF_History history = DefaultDataAccess.getInstance().getDataObject(
+					connection, PF_History.class, "entityName = ? AND refID = ?", dataObject.getClass().getSimpleName(), dataObject.getId());
+			
+			deleteDataObject(connection, history);
+		}
+	}
+	
+	public void deleteDataObjects(DBConnection connection, Class<?> dataClass, String sqlQuery, Object... params) {
+
+		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
+		StringBuilder sql = new StringBuilder();
+		if (dataObjectInfo.getSourceType() == SourceType.Table) {
+			sql.append("DELETE FROM ");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(" D WHERE ");
+			sql.append(sqlQuery);
+		} else
+			throw new RuntimeException("Only table data can be deleted");
+
+		Update update = new Update(connection, sql.toString());
+
+
+		try {
+			int i = 1;
+			for (Object param : params) {
+				setParam(update, i, param);
+				i++;
+			}
+
+			update.execute(false);
+		} finally {
+			update.close();
+		}
+		
 	}
 	
 	public void execute(DBConnection connection, String sql, Object... params) {
@@ -365,8 +453,47 @@ public class DefaultDataAccess {
 	}
 
 	public int count(DBConnection connection, String sql, Object... params) {
-		int count = 0;
-		return count;
+		ResultSet rs = null;
+		PreparedStatement ps = null;
+		try {			
+			ps = connection.getConnection().prepareStatement(sql, PreparedStatement.NO_GENERATED_KEYS);
+
+			int i = 1;
+			for (Object param : params) {
+				if (param != null) {
+					if (param.getClass().equals(Date.class))
+						ps.setTimestamp(i, new Timestamp(((Date) param).getTime()));
+					else
+						ps.setObject(i, param);
+					
+				} else {
+					ps.setNull(i, Types.BIGINT);
+				}
+				i++;
+			}
+			rs = ps.executeQuery();
+			
+			if (rs.next()) {
+				return rs.getInt(1);
+			}
+			
+			return 0;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				if (rs != null)
+					rs.close();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			try {
+				if (ps != null)
+					ps.close();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 }

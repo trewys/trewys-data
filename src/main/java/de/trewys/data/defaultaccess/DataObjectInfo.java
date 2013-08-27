@@ -1,18 +1,20 @@
-/*
- * Copyright 2013 trewys GmbH 
+ /*
+ * Copyright 2012 trewys GmbH
  * 
- * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
+ * 
  */
+
 package de.trewys.data.defaultaccess;
 
 import java.lang.reflect.Method;
@@ -23,7 +25,12 @@ import de.trewys.data.access.SQLStatementReader;
 
 public class DataObjectInfo {
 
+	public enum SourceType {
+		Query,
+		Table
+	}
 	private final Class<?> dataClass;
+	private final SourceType sourceType;
 	private final String source;
 	private DataObjectProperty idProperty;
 	private final List<DataObjectProperty> properties;
@@ -36,13 +43,16 @@ public class DataObjectInfo {
 			String sourceFile = dataClass.getAnnotation(DataObjectSource.class).file();
 			String sourceTable = dataClass.getAnnotation(DataObjectSource.class).table();
 			if (sourceFile != null && !"".equals(sourceFile)) {
-				this.source = "(" + SQLStatementReader.getInstance().getSQLFile(sourceFile) + ")";
+				this.sourceType = SourceType.Query;
+				this.source = SQLStatementReader.getInstance().getSQLFile(sourceFile);
 			} else if (sourceTable != null && !"".equals(sourceTable)) {
+				this.sourceType = SourceType.Table;
 				this.source = sourceTable;
 			} else {
 				throw new RuntimeException("Illegal source attribute: " + this.source); //TODO: Table / View
 			}
 		} else {
+			this.sourceType = SourceType.Table;
 			source = dataClass.getSimpleName();
 		}
 		
@@ -94,6 +104,10 @@ public class DataObjectInfo {
 
 	public String getSource() {
 		return source;
+	}
+	
+	public SourceType getSourceType() {
+		return sourceType;
 	}
 
 }
