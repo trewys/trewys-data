@@ -27,14 +27,12 @@ import java.util.Date;
 import java.util.List;
 
 import de.trewys.data.DataObject;
-import de.trewys.data.PF_History;
 import de.trewys.data.access.DBCommand;
 import de.trewys.data.access.DBConnection;
 import de.trewys.data.access.DataReader;
 import de.trewys.data.access.Query;
 import de.trewys.data.access.Update;
 import de.trewys.data.defaultaccess.DataObjectInfo.SourceType;
-import de.trewys.data.historicizer.Historicizer;
 
 public class DefaultDataAccess {
 
@@ -229,11 +227,6 @@ public class DefaultDataAccess {
 	}
 	
 	public void insertDataObject(DBConnection connection, DataObject dataObject) {
-		insertDataObject(connection, dataObject, null);
-	}
-	
-	
-	public void insertDataObject(DBConnection connection, DataObject dataObject, Historicizer historicizer) {
 		Class<?> dataClass = dataObject.getClass();
 		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
 
@@ -291,16 +284,9 @@ public class DefaultDataAccess {
 			update.close();
 		}	
 		
-		if (historicizer != null) {
-			historicizer.historicize(connection);
-		}
 	}
 	
 	public void updateDataObject(DBConnection connection, DataObject dataObject) {
-		updateDataObject(connection, dataObject, null);
-	}
-
-	public void updateDataObject(DBConnection connection, DataObject dataObject, Historicizer historicizer) {
 		Class<?> dataClass = dataObject.getClass();
 		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
 
@@ -353,10 +339,6 @@ public class DefaultDataAccess {
 		} finally {
 			update.close();
 		}		
-		
-		if (historicizer != null) {
-			historicizer.historicize(connection);
-		}
 	}
 	
 	public void deleteDataObject(DBConnection connection, DataObject dataObject) {
@@ -382,14 +364,6 @@ public class DefaultDataAccess {
 
 		} finally {
 			update.close();
-		}
-		
-		// clean up history
-		if (dataObject.getClass().isAnnotationPresent(History.class)) {
-			PF_History history = DefaultDataAccess.getInstance().getDataObject(
-					connection, PF_History.class, "entityName = ? AND refID = ?", dataObject.getClass().getSimpleName(), dataObject.getId());
-			
-			deleteDataObject(connection, history);
 		}
 	}
 	
