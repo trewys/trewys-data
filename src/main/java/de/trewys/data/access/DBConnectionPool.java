@@ -88,7 +88,7 @@ public class DBConnectionPool {
 			//if pool isn't emty => remove last one
 			DBConnection connection = connections.remove(connections.size() - 1);
 			try {
-				connection.rollBackTransaction();
+				connection.getConnection().rollback();
 				
 				//if connection has been closed (for any reason)
 				//this connection will be dropped and a new one will be returned.

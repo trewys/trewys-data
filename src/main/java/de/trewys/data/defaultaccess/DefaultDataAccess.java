@@ -426,6 +426,21 @@ public class DefaultDataAccess {
 		}
 	}
 
+	public int count(DBConnection connection, Class<? extends DataObject> dataClass, String sqlQuery, Object... params) {
+		DataObjectInfo dataObjectInfo = DataObjectConfig.getInstance().getInfo(dataClass);
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT COUNT(*) AS c FROM ");
+		if (dataObjectInfo.getSourceType() == SourceType.Query) {
+			sql.append("(");
+			sql.append(dataObjectInfo.getSource());
+			sql.append(")");
+		} else
+			sql.append(dataObjectInfo.getSource());
+		sql.append(" D WHERE ");
+		sql.append(sqlQuery);
+		return count(connection, sql.toString(), params);
+	}
+	
 	public int count(DBConnection connection, String sql, Object... params) {
 		ResultSet rs = null;
 		PreparedStatement ps = null;
